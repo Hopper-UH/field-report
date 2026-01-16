@@ -7,9 +7,10 @@ interface ReportFormProps {
   onSave: (report: Report, shouldDownload: boolean) => void;
   onCancel: () => void;
   selectedType: ReportType;
+  initialData?: Report;
 }
 
-const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType }) => {
+const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType, initialData }) => {
   const [loadingAi, setLoadingAi] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -19,29 +20,39 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType 
   const [weatherCondition, setWeatherCondition] = useState('');
   const [weatherTemp, setWeatherTemp] = useState('');
 
-  const [formData, setFormData] = useState<Partial<Report>>({
-    id: Math.random().toString(36).substr(2, 9),
-    type: selectedType,
-    date: new Date().toISOString().split('T')[0],
-    timeRange: '',
-    projectName: '',
-    jobId: 'N/A',
-    ownerDeveloper: '',
-    projectAddress: '',
-    stageOfConstruction: '',
-    projectType: '',
-    inspectionType: 'Field Inspection',
-    weather: '',
-    photosTaken: true,
-    visualInspectionIssue: 'N/A',
-    inspectorName: '',
-    inspectorPhone: '',
-    inspectorEmail: '',
-    signature: '',
-    generalComments: '',
-    images: [],
-    status: 'Completed',
-    createdAt: Date.now(),
+  const [formData, setFormData] = useState<Partial<Report>>(() => {
+    if (initialData) {
+      return { ...initialData };
+    }
+    
+    // Check for saved inspector settings
+    const savedSettings = localStorage.getItem('field_reporter_settings');
+    const defaultInspector = savedSettings ? JSON.parse(savedSettings) : {};
+
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      type: selectedType,
+      date: new Date().toISOString().split('T')[0],
+      timeRange: '',
+      projectName: '',
+      jobId: 'N/A',
+      ownerDeveloper: '',
+      projectAddress: '',
+      stageOfConstruction: '',
+      projectType: '',
+      inspectionType: 'Field Inspection',
+      weather: '',
+      photosTaken: true,
+      visualInspectionIssue: 'N/A',
+      inspectorName: defaultInspector.name || '',
+      inspectorPhone: defaultInspector.phone || '',
+      inspectorEmail: defaultInspector.email || '',
+      signature: '',
+      generalComments: '',
+      images: [],
+      status: 'Completed',
+      createdAt: Date.now(),
+    };
   });
 
   // Initialize weather local state if editing existing data
@@ -90,7 +101,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType 
     const files = e.target.files;
     if (files && files.length > 0) {
       const newImages: string[] = [];
-      Array.from(files).forEach(file => {
+      Array.from(files).forEach((file) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           if (reader.result) {
@@ -103,7 +114,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType 
             }
           }
         };
-        reader.readAsDataURL(file);
+        // Explicitly cast file to Blob to satisfy TypeScript if inference fails
+        reader.readAsDataURL(file as Blob);
       });
     }
   };
@@ -122,7 +134,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType 
     
     const rect = canvas.getBoundingClientRect();
     
-    // Calculate scale ratio between displayed size and internal canvas resolution
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
@@ -224,8 +235,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType 
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
         <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold">New Inspection Report</h2>
-            <p className="text-slate-400 text-sm">Fill out the field inspection details below.</p>
+            <h2 className="text-xl font-bold">{initialData ? 'Edit Report' : 'New Inspection Report'}</h2>
+            <p className="text-slate-400 text-sm">{initialData ? 'Update the details below.' : 'Fill out the field inspection details below.'}</p>
           </div>
           <button onClick={onCancel} className="text-slate-400 hover:text-white transition-colors">
             <X className="w-6 h-6" />
