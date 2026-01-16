@@ -3,15 +3,18 @@ import Sidebar from './components/Sidebar';
 import ReportForm from './components/ReportForm';
 import ReportView from './components/ReportView';
 import { Report, ReportType } from './types';
-import { Plus, ChevronDown, FileText, Search, Menu } from 'lucide-react';
+import { Plus, ChevronDown, FileText, Search, Menu, Save, Pencil } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'create', 'view'
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'create', 'view', 'edit', 'settings'
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [createType, setCreateType] = useState<ReportType>(ReportType.FIELD_INSPECTION);
   
+  // Settings State
+  const [settings, setSettings] = useState({ name: '', email: '', phone: '' });
+
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -23,11 +26,12 @@ const App: React.FC = () => {
 
   // Load from local storage
   useEffect(() => {
-    const saved = localStorage.getItem('field_reports_v2'); // New key for new schema
+    // Load reports
+    const saved = localStorage.getItem('field_reports_v2'); 
     if (saved) {
       setReports(JSON.parse(saved));
     } else {
-      // Seed some dummy data matching the PDF example
+      // Seed some dummy data
       const dummy: Report[] = [
         {
           id: 'RPT-2025-001',
@@ -57,6 +61,12 @@ const App: React.FC = () => {
       setReports(dummy);
       localStorage.setItem('field_reports_v2', JSON.stringify(dummy));
     }
+
+    // Load settings
+    const savedSettings = localStorage.getItem('field_reporter_settings');
+    if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+    }
   }, []);
 
   const handleSaveReport = (report: Report, shouldDownload: boolean = false) => {
@@ -83,6 +93,12 @@ const App: React.FC = () => {
     }
   };
 
+  const handleEditReport = (report: Report) => {
+      setSelectedReport(report);
+      setCreateType(report.type);
+      setCurrentView('edit');
+  };
+
   const handleCreateClick = (type: ReportType) => {
     setCreateType(type);
     setCurrentView('create');
@@ -93,6 +109,12 @@ const App: React.FC = () => {
     setSelectedReport(report);
     setAutoDownload(false);
     setCurrentView('view');
+  };
+
+  const saveSettings = (e: React.FormEvent) => {
+      e.preventDefault();
+      localStorage.setItem('field_reporter_settings', JSON.stringify(settings));
+      alert('Settings saved! Future reports will use these details.');
   };
 
   const formatDate = (dateString: string) => {
@@ -244,8 +266,16 @@ const App: React.FC = () => {
                                 <div className="text-xs text-slate-500 mt-0.5">{formatDate(report.date)}</div>
                               </div>
                               
-                              {/* Download Action */}
                               <div className="hidden group-hover:flex items-center space-x-1">
+                                 {/* Edit Button */}
+                                 <button
+                                   onClick={(e) => { e.stopPropagation(); handleEditReport(report); }}
+                                   className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                                   title="Edit Report"
+                                 >
+                                   <Pencil className="w-4 h-4" />
+                                 </button>
+                                 {/* View Button */}
                                  <button 
                                    onClick={(e) => { e.stopPropagation(); handleViewReport(report); }}
                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
@@ -308,6 +338,9 @@ const App: React.FC = () => {
                                       <td className="p-4 font-medium text-slate-900">{r.projectName}</td>
                                       <td className="p-4">{r.inspectorName}</td>
                                       <td className="p-4 text-right flex justify-end space-x-2">
+                                          <button onClick={() => handleEditReport(r)} className="text-slate-600 hover:text-blue-600 font-medium px-3 py-1 flex items-center">
+                                            <Pencil className="w-3 h-3 mr-1" /> Edit
+                                          </button>
                                           <button onClick={() => handleViewReport(r)} className="text-blue-600 hover:text-blue-800 font-medium px-3 py-1">View</button>
                                           <button onClick={() => handleDeleteReport(r.id)} className="text-red-600 hover:text-red-800 font-medium px-3 py-1">Delete</button>
                                       </td>
@@ -326,12 +359,75 @@ const App: React.FC = () => {
                </div>
           )}
 
-          {/* VIEW: CREATE FORM */}
-          {currentView === 'create' && (
+          {/* VIEW: SETTINGS */}
+          {currentView === 'settings' && (
+              <div className="max-w-2xl mx-auto">
+                <div className="mb-6 flex items-center">
+                    <button onClick={() => setCurrentView('dashboard')} className="text-slate-500 hover:text-slate-800 mr-4">Back</button>
+                    <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+                </div>
+                
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="p-6 border-b border-slate-100">
+                        <h2 className="text-lg font-bold text-slate-800">Inspector Profile</h2>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Save your default details here. These will automatically appear in new reports.
+                        </p>
+                    </div>
+                    
+                    <form onSubmit={saveSettings} className="p-6 space-y-6">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                            <input
+                                type="text"
+                                className="w-full rounded border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="e.g. John Doe"
+                                value={settings.name}
+                                onChange={(e) => setSettings({...settings, name: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Phone Number</label>
+                            <input
+                                type="text"
+                                className="w-full rounded border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="e.g. 555-0123"
+                                value={settings.phone}
+                                onChange={(e) => setSettings({...settings, phone: e.target.value})}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
+                            <input
+                                type="email"
+                                className="w-full rounded border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="e.g. john@example.com"
+                                value={settings.email}
+                                onChange={(e) => setSettings({...settings, email: e.target.value})}
+                            />
+                        </div>
+
+                        <div className="pt-4 flex justify-end">
+                             <button
+                                type="submit"
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md transition-colors flex items-center"
+                             >
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Settings
+                             </button>
+                        </div>
+                    </form>
+                </div>
+              </div>
+          )}
+
+          {/* VIEW: CREATE FORM (used for NEW and EDIT) */}
+          {(currentView === 'create' || currentView === 'edit') && (
             <ReportForm
               selectedType={createType}
               onSave={(r, d) => handleSaveReport(r, d)}
               onCancel={() => setCurrentView('dashboard')}
+              initialData={currentView === 'edit' ? selectedReport! : undefined}
             />
           )}
 
