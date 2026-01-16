@@ -62,7 +62,10 @@ const App: React.FC = () => {
       localStorage.setItem('field_reports_v2', JSON.stringify(dummy));
     }
 
-    // Load settings
+    // Load settings - we don't set state here anymore if we want fields to remain empty by default
+    // or we set them if we want to show current values. 
+    // The user requested empty fields after save, but usually we want to see them on load.
+    // I will load them so the user knows what is there, but clear them on SAVE as requested.
     const savedSettings = localStorage.getItem('field_reporter_settings');
     if (savedSettings) {
         setSettings(JSON.parse(savedSettings));
@@ -115,6 +118,8 @@ const App: React.FC = () => {
       e.preventDefault();
       localStorage.setItem('field_reporter_settings', JSON.stringify(settings));
       alert('Settings saved! Future reports will use these details.');
+      // User requested to clear fields after saving
+      setSettings({ name: '', email: '', phone: '' }); 
   };
 
   const formatDate = (dateString: string) => {
@@ -145,10 +150,12 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:ml-64 min-h-screen transition-all duration-300">
+      {/* Changed margin logic: only apply left margin on Large screens (lg). Tablets now behave like mobile. */}
+      <div className="flex-1 flex flex-col lg:ml-64 min-h-screen transition-all duration-300">
         
-        {/* Mobile Header */}
-        <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between md:hidden sticky top-0 z-10">
+        {/* Mobile/Tablet Header */}
+        {/* Changed visibility: visible up to lg breakpoint */}
+        <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between lg:hidden sticky top-0 z-10">
            <div className="flex items-center">
              <button onClick={() => setIsSidebarOpen(true)} className="p-2 mr-2 text-slate-600 hover:bg-slate-100 rounded-lg">
                <Menu className="w-6 h-6" />
@@ -428,6 +435,7 @@ const App: React.FC = () => {
               onSave={(r, d) => handleSaveReport(r, d)}
               onCancel={() => setCurrentView('dashboard')}
               initialData={currentView === 'edit' ? selectedReport! : undefined}
+              history={reports}
             />
           )}
 
