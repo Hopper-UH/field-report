@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Report, ReportType } from '../types';
-import { Save, X, Eraser, Wand2, Loader2, Image as ImageIcon, Upload, Trash2, AlignLeft, Eye, Download } from 'lucide-react';
+import { Save, X, Eraser, Wand2, Loader2, Image as ImageIcon, Upload, Trash2, AlignLeft, Eye, Download, History } from 'lucide-react';
 import { refineText } from '../services/geminiService';
 
 interface ReportFormProps {
@@ -8,9 +8,10 @@ interface ReportFormProps {
   onCancel: () => void;
   selectedType: ReportType;
   initialData?: Report;
+  history?: Report[];
 }
 
-const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType, initialData }) => {
+const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType, initialData, history = [] }) => {
   const [loadingAi, setLoadingAi] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -19,6 +20,19 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType,
   // Local state for weather components
   const [weatherCondition, setWeatherCondition] = useState('');
   const [weatherTemp, setWeatherTemp] = useState('');
+
+  // Dropdown for previous projects
+  const uniqueProjects = useMemo(() => {
+    const projects = new Map<string, Report>();
+    // Iterate through history to find unique projects. 
+    // Since history is often newest first, the first time we see a project name, it's the latest data.
+    history.forEach(report => {
+        if (report.projectName && !projects.has(report.projectName)) {
+            projects.set(report.projectName, report);
+        }
+    });
+    return Array.from(projects.values());
+  }, [history]);
 
   const [formData, setFormData] = useState<Partial<Report>>(() => {
     if (initialData) {
@@ -54,6 +68,24 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType,
       createdAt: Date.now(),
     };
   });
+
+  const handleProjectSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedProjectName = e.target.value;
+    if (!selectedProjectName) return;
+
+    const projectData = uniqueProjects.find(p => p.projectName === selectedProjectName);
+    if (projectData) {
+        setFormData(prev => ({
+            ...prev,
+            projectName: projectData.projectName,
+            jobId: projectData.jobId,
+            ownerDeveloper: projectData.ownerDeveloper,
+            projectAddress: projectData.projectAddress,
+            projectType: projectData.projectType,
+            stageOfConstruction: projectData.stageOfConstruction 
+        }));
+    }
+  };
 
   // Initialize weather local state if editing existing data
   useEffect(() => {
@@ -248,6 +280,26 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSave, onCancel, selectedType,
           {/* General Site Information */}
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-slate-800 border-b pb-2">General Site Information</h3>
+            
+            {/* Quick Fill Dropdown */}
+            {uniqueProjects.length > 0 && (
+                <div className="bg-blue-50/80 border border-blue-200 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex items-center text-blue-900 font-semibold text-sm whitespace-nowrap">
+                        <History className="w-4 h-4 mr-2" />
+                        Quick Fill:
+                    </div>
+                    <select 
+                        onChange={handleProjectSelect}
+                        className="w-full sm:w-auto flex-1 bg-white text-slate-700 text-sm border border-blue-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer hover:border-blue-400 transition-colors"
+                        defaultValue=""
+                    >
+                        <option value="" disabled>Select a previous project to auto-fill details...</option>
+                        {uniqueProjects.map(p => (
+                            <option key={p.projectName} value={p.projectName}>{p.projectName}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
