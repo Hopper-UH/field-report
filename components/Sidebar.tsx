@@ -16,16 +16,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, on
 
   return (
     <>
-      {/* Mobile Overlay Backdrop */}
+      {/* Mobile Overlay Backdrop - Visible on mobile AND tablet now (lg:hidden) */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar Container */}
-      <div className={`fixed top-0 bottom-0 left-0 z-30 w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* Sidebar Container - Hidden on mobile/tablet, visible on Desktop (lg) */}
+      <div className={`fixed top-0 bottom-0 left-0 z-30 w-64 bg-slate-900 text-white min-h-screen flex flex-col shadow-xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
         {/* Header */}
         <div className="p-6 border-b border-slate-700 flex items-center justify-between">
@@ -38,8 +38,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, on
               <p className="text-xs text-slate-400 font-medium">Field Reporter</p>
             </div>
           </div>
-          {/* Close Button (Mobile Only) */}
-          <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white">
+          {/* Close Button (Mobile/Tablet Only) */}
+          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
