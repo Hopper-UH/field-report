@@ -1,0 +1,7 @@
+streamlit
+pandas
+fpdf
+Pillow
+streamlit-drawable-canvas
+streamlit-quill
+beautifulsoup4
